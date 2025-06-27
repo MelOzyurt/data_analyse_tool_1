@@ -3,6 +3,15 @@ import numpy as np
 import plotly.express as px
 import scipy.stats as stats
 
+# ---------- Load Data ----------
+def load_data(uploaded_file):
+    if uploaded_file.name.endswith('.csv'):
+        return pd.read_csv(uploaded_file)
+    elif uploaded_file.name.endswith('.xlsx'):
+        return pd.read_excel(uploaded_file)
+    else:
+        raise ValueError("Unsupported file type")
+
 # ---------- 1. Numeric Summary ----------
 def analyze_numeric(df):
     numeric_df = df.select_dtypes(include=np.number)
@@ -36,27 +45,3 @@ def chi_square_analysis(df, col1=None, col2=None):
     })
 
     return results, p
-
-# ---------- 4. Additional Example Analysis: T-test for two numeric columns ----------
-def t_test_analysis(df, col1=None, col2=None):
-    if col1 is None or col2 is None:
-        return {"error": "You must specify two numeric columns."}, None
-
-    if col1 not in df.columns or col2 not in df.columns:
-        return {"error": "Columns not found in dataframe."}, None
-
-    if not np.issubdtype(df[col1].dtype, np.number) or not np.issubdtype(df[col2].dtype, np.number):
-        return {"error": "Selected columns must be numeric."}, None
-
-    stat, p = stats.ttest_ind(df[col1].dropna(), df[col2].dropna())
-    results = pd.DataFrame({
-        "T-Statistic": [stat],
-        "P-Value": [p]
-    })
-
-    return results, p
-
-# ---------- 5. Custom Analysis Placeholder ----------
-def custom_analysis(df):
-    # You can add your own custom analysis logic here
-    return "Custom analysis results here."
