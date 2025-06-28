@@ -24,18 +24,17 @@ import re
 def ai_interpretation(prompt):
     try:
         response = client.chat.completions.create(
-            model="gpt-4-1106-preview",  # or "gpt-4o"
-            messages=[{"role": "user", "content": prompt}],
-messages=[
-                {"role": "system", "content": "You are a helpful AI assistant that analyzes data and provides insights. You can highlighted the anomalies, interpretcorrelations between atributes, find and tell similarities or impact from other attributes"},
+            model="gpt-4-1106-preview",  # veya "gpt-4o"
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant that analyzes data and provides insights. You can highlight anomalies, interpret correlations between attributes, find and tell similarities or impact from other attributes."},
                 {"role": "user", "content": prompt}
-            ],            
-max_tokens=500,
+            ],
+            max_tokens=500,
             temperature=0.7
         )
         raw_message = response.choices[0].message.content.strip()
 
-        # ✅ Truncate to the last full sentence using regex
+        # ✅ Sadece tam cümleleri al
         sentences = re.findall(r'[^.!?]*[.!?]', raw_message)
         clean_message = ''.join(sentences).strip()
 
