@@ -7,6 +7,9 @@ import numpy as np
 from analysis_utils import *
 from utils_text import *
 
+from analysis_utils import t_test_analysis
+
+
 # Başlık
 st.title("🧠 Data Analysis Tool")
 
@@ -14,20 +17,35 @@ st.title("🧠 Data Analysis Tool")
 client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # GPT interpret function (with updated API)
+
+
+import re
+
 def ai_interpretation(prompt):
     try:
         response = client.chat.completions.create(
-            model="gpt-4-1106-preview",  # gpt-4.1 uyumlu
-            messages=[
+            model="gpt-4-1106-preview",  # or "gpt-4o"
+            messages=[{"role": "user", "content": prompt}],
+messages=[
                 {"role": "system", "content": "You are a helpful AI assistant that analyzes data and provides insights. You can highlighted the anomalies, interpretcorrelations between atributes, find and tell similarities or impact from other attributes"},
                 {"role": "user", "content": prompt}
-            ],
-            max_tokens=300,
+            ],            
+max_tokens=500,
             temperature=0.7
         )
-        return response.choices[0].message.content.strip()
+        raw_message = response.choices[0].message.content.strip()
+
+        # ✅ Truncate to the last full sentence using regex
+        sentences = re.findall(r'[^.!?]*[.!?]', raw_message)
+        clean_message = ''.join(sentences).strip()
+
+        return clean_message
+
     except Exception as e:
-        return f"AI yorumlama sırasında hata oluştu:\n\n{e}"
+        return f"**Error during AI interpretation:** {e}"
+
+
+
 
 # Veri yükleme
 uploaded_file = st.file_uploader("Upload your dataset", type=["csv", "xlsx"])
@@ -100,12 +118,5 @@ elif option == "T-Test":
 
 
 
-elif option == "Custom Analysis":
-    result = custom_analysis(df)
-    st.write(result)
-    prompt = f"Analyze the following dataset summary and missing value report:\n{result}"
-    ai_result = ai_interpretation(prompt)
-    st.markdown("### AI Insights")
-    st.write(ai_result)
 
 

@@ -49,31 +49,26 @@ def chi_square_analysis(df, col1=None, col2=None):
 
 #-------------4. T-Test Analaysis-----------------------
 
-import pandas as pd
+
+
 from scipy.stats import ttest_ind
+import pandas as pd
 
 def t_test_analysis(df, col1, col2):
-    if not pd.api.types.is_numeric_dtype(df[col1]):
-        return {"error": f"{col1} must be numeric"}, None
-    if not pd.api.types.is_numeric_dtype(df[col2]):
-        return {"error": f"{col2} must be numeric"}, None
-
-    stat, p = ttest_ind(df[col1].dropna(), df[col2].dropna(), equal_var=False)
-    result = pd.DataFrame({
-        "T-Statistic": [stat],
-        "P-Value": [p]
-    })
-    return result, p
-
-#-------------5. Custom Analysis----------------------
-
-def custom_analysis(df):
     try:
-        summary = df.describe(include='all')
-        missing = df.isnull().sum()
-        result = f"Data Summary:\n{summary}\n\nMissing Values:\n{missing}"
-        return result
+        group1 = df[col1].dropna()
+        group2 = df[col2].dropna()
+        stat, p_val = ttest_ind(group1, group2, equal_var=False)
+
+        result = pd.DataFrame({
+            "Group": [col1, col2],
+            "Mean": [group1.mean(), group2.mean()],
+            "Std": [group1.std(), group2.std()],
+            "Count": [len(group1), len(group2)]
+        })
+
+        return result, p_val
     except Exception as e:
-        return f"Error in custom analysis: {e}"
+        return f"Hata: {e}", None
 
  
