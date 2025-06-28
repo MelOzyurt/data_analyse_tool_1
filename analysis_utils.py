@@ -45,3 +45,19 @@ def chi_square_analysis(df, col1=None, col2=None):
     })
 
     return results, p
+from scipy.stats import ttest_ind
+
+def t_test_analysis(df, col1, col2):
+    if df[col1].dtype != 'float64' and df[col1].dtype != 'int64':
+        return {"error": f"{col1} must be numeric"}, None
+    if df[col2].dtype != 'float64' and df[col2].dtype != 'int64':
+        return {"error": f"{col2} must be numeric"}, None
+
+    stat, p = ttest_ind(df[col1].dropna(), df[col2].dropna(), equal_var=False)
+    result = pd.DataFrame({
+        "T-Statistic": [stat],
+        "P-Value": [p]
+    })
+    return result, p
+def custom_analysis(df):
+    return df.head()  

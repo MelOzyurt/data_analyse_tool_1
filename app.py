@@ -1,25 +1,35 @@
+#gpt-4.1 version
+
 import streamlit as st
 import openai
+import pandas as pd
+import numpy as np
 from analysis_utils import *
 from utils_text import *
 
+# Başlık
 st.title("🧠 Data Analysis Tool")
 
-# OpenAI API anahtarı Streamlit secrets'den alınıyor
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# OpenAI API Key
+client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+# GPT interpret function (with updated API)
 def ai_interpretation(prompt):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=150,
+        response = client.chat.completions.create(
+            model="gpt-4-1106-preview",  # gpt-4.1 uyumlu
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant that analyzes data and provides insights. You can highlighted the anomalies, interpretcorrelations between atributes, find and tell similarities or impact from other attributes"},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=300,
             temperature=0.7
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"AI yorumlama sırasında hata oluştu: {e}"
+        return f"AI yorumlama sırasında hata oluştu:\n\n{e}"
 
+# Veri yükleme
 uploaded_file = st.file_uploader("Upload your dataset", type=["csv", "xlsx"])
 
 if uploaded_file:
@@ -40,7 +50,8 @@ if uploaded_file:
     if option == "Numeric Summary":
         result = analyze_numeric(df)
         st.write(result)
-        # AI yorumlama
+
+        # AI Yorumu
         prompt = f"Analyze the following numeric summary statistics and provide insights:\n{result.to_string()}"
         ai_result = ai_interpretation(prompt)
         st.markdown("### AI Insights")
@@ -49,6 +60,7 @@ if uploaded_file:
     elif option == "Correlation Matrix":
         fig, corr_df = correlation_plot(df)
         st.plotly_chart(fig)
+
         prompt = f"Explain the key points and findings from this correlation matrix:\n{corr_df.to_string()}"
         ai_result = ai_interpretation(prompt)
         st.markdown("### AI Insights")
@@ -87,3 +99,7 @@ if uploaded_file:
     elif option == "Custom Analysis":
         result = custom_analysis(df)
         st.write(result)
+        prompt = f"Provide insights for this custom analysis:\n{result.to_string()}"
+        ai_result = ai_interpretation(prompt)
+        st.markdown("### AI Insights")
+        st.write(ai_result)
