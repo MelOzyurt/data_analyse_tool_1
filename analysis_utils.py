@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import scipy.stats as stats
+from scipy.stats import chi2_contingency, ttest_ind
 
 # ---------- Load Data ----------
 def load_data(uploaded_file):
@@ -45,12 +46,16 @@ def chi_square_analysis(df, col1=None, col2=None):
     })
 
     return results, p
+
+#-------------4. T-Test Analaysis-----------------------
+
+import pandas as pd
 from scipy.stats import ttest_ind
 
 def t_test_analysis(df, col1, col2):
-    if df[col1].dtype != 'float64' and df[col1].dtype != 'int64':
+    if not pd.api.types.is_numeric_dtype(df[col1]):
         return {"error": f"{col1} must be numeric"}, None
-    if df[col2].dtype != 'float64' and df[col2].dtype != 'int64':
+    if not pd.api.types.is_numeric_dtype(df[col2]):
         return {"error": f"{col2} must be numeric"}, None
 
     stat, p = ttest_ind(df[col1].dropna(), df[col2].dropna(), equal_var=False)
@@ -59,5 +64,16 @@ def t_test_analysis(df, col1, col2):
         "P-Value": [p]
     })
     return result, p
+
+#-------------5. Custom Analysis----------------------
+
 def custom_analysis(df):
-    return df.head()  
+    try:
+        summary = df.describe(include='all')
+        missing = df.isnull().sum()
+        result = f"Data Summary:\n{summary}\n\nMissing Values:\n{missing}"
+        return result
+    except Exception as e:
+        return f"Error in custom analysis: {e}"
+
+ 
