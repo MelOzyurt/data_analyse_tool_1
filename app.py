@@ -1,97 +1,83 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import re
-import openai
-from utils.analysis_utils import analyze_numeric, correlation_plot, chi_square_analysis, t_test_analysis
 
-# ✅ OpenAI API
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+# App Modules
+from auth.login import login_ui
+from components.sidebar import show_sidebar
+from upload.file_handler import upload_and_process_file
+from analysis.analyze_data import analyze_data_ui
+from analysis.analyze_feedback import analyze_feedback_ui
+from chat.chat_with_doc import chat_with_doc_ui
+from components.cost_panel import show_cost_panel
 
-def ai_interpretation(prompt):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4-1106-preview",
-            messages=[
-                {"role": "system", "content": "You are a data analysis assistant. Provide insight and explain statistical results in plain language."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=500,
-            temperature=0.7
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"**AI Error:** {e}"
+# Page config
+st.set_page_config(page_title="📊 Unified Analytics App", layout="wide")
 
-def analyze_data_ai_ui(df: pd.DataFrame):
-    st.header("🔍 AI-Assisted Data Analysis")
+# --- Session Initialization ---
+def init_session():
+    defaults = {
+        "logged_in": False,
+        "username": None,
+        "balance": 50.0,  # Default balance
+        "uploaded_data": None,
+        "analysis_type": None,
+    }
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
-    if df is None or df.empty:
-        st.warning("No data uploaded or empty DataFrame.")
+init_session()
+
+# --- Main App Function ---
+def main():
+    st.title("📈 Unified Analytics Platform")
+
+    # Sidebar (Login info & logout)
+    app_mode = show_sidebar()
+
+    # Login Control
+    if not st.session_state.get("logged_in", False):
+        login_ui()
         return
 
-    option = st.selectbox("Select Analysis Type", [
-        "Numeric Summary",
-        "Correlation Matrix",
-        "Chi-Square Test",
-        "T-Test"
-    ])
+    # Upload Section
+    st.header("📁 Upload Your Data")
+    uploaded_data, file_type = upload_and_process_file()
 
-    if option == "Numeric Summary":
-        result = analyze_numeric(df)
-        st.write("### 📊 Descriptive Statistics")
-        st.dataframe(result)
+    if uploaded_data is None:
+        st.info("Please upload a file to proceed.")
+        return
 
-        prompt = f"Analyze the following numeric summary statistics:\n{result.to_string()}"
-        ai_result = ai_interpretation(prompt)
-        st.markdown("### 🧠 AI Insight")
-        st.write(ai_result)
+    st.success(f"✅ File uploaded successfully! Detected type: `{file_type}`")
+    st.dataframe(uploaded_data.head())
+    st.session_state.uploaded_data = uploaded_data
 
-    elif option == "Correlation Matrix":
-        st.write("### 📈 Correlation Matrix")
-        fig, corr_df = correlation_plot(df)
-        st.plotly_chart(fig, use_container_width=True)
+    # Analysis Type Selection
+    st.subheader("🔎 Choose Analysis Type")
+    analysis_type = st.radio(
+        "Select one of the following analysis options:",
+        ["AI-Assisted Data Analysis", "Analyze Feedback", "Chat With Document"]
+    )
+    st.session_state.analysis_type = analysis_type
 
-        prompt = f"Explain the key findings in this correlation matrix:\n{corr_df.to_string()}"
-        ai_result = ai_interpretation(prompt)
-        st.markdown("### 🧠 AI Insight")
-        st.write(ai_result)
+    # Cost Panel
+    show_cost_panel(analysis_type)
 
-    elif option == "Chi-Square Test":
-        cat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        if len(cat_cols) < 2:
-            st.error("Not enough categorical columns for Chi-Square Test.")
+    # Run Analysis
+    if st.button("🚀 Run Analysis"):
+        if st.session_state.balance <= 0:
+            st.error("❌ Insufficient balance. Please top up your account.")
             return
 
-        col1 = st.selectbox("Select first categorical column", cat_cols)
-        col2 = st.selectbox("Select second categorical column", [c for c in cat_cols if c != col1])
+        if analysis_type == "AI-Assisted Data Analysis":
+            analyze_data_ui(uploaded_data)
+        elif analysis_type == "Analyze Feedback":
+            analyze_feedback_ui(uploaded_data)
+        elif analysis_type == "Chat With Document":
+            chat_with_doc_ui(uploaded_data)
+        else:
+            st.warning("⚠️ Invalid selection.")
 
-        result, p_val = chi_square_analysis(df, col1, col2)
-        st.write(f"**Chi² = {result['chi2_stat']:.2f}, p = {result['p_value']:.4f}**")
-        st.dataframe(result["contingency_table"])
-
-        prompt = f"Interpret the chi-square result with p={p_val} between {col1} and {col2}."
-        ai_result = ai_interpretation(prompt)
-        st.markdown("### 🧠 AI Insight")
-        st.write(ai_result)
-
-    elif option == "T-Test":
-        num_cols = df.select_dtypes(include=np.number).columns.tolist()
-        if len(num_cols) < 2:
-            st.error("Not enough numeric columns for T-Test.")
-            return
-
-        col1 = st.selectbox("Select first numeric column", num_cols)
-        col2 = st.selectbox("Select second numeric column", [c for c in num_cols if c != col1])
-
-        try:
-            result, p_val = t_test_analysis(df, col1, col2)
-            st.write(result)
-            prompt = f"Interpret the t-test result with p={p_val} comparing {col1} and {col2}."
-            ai_result = ai_interpretation(prompt)
-            st.markdown("### 🧠 AI Insight")
-            st.write(ai_result)
-        except Exception as e:
-            st.error(f"T-Test Error: {e}")
-
-    st.success("✅ Analysis completed.")
+# --- App Entry Point ---
+if __name__ == "__main__":
+    main()
